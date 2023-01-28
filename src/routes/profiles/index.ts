@@ -8,7 +8,9 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
 ): Promise<void> => {
   fastify.get('/', async function (request, reply): Promise<
     ProfileEntity[]
-  > {});
+  > {
+    return await fastify.db.profiles.findMany();
+  });
 
   fastify.get(
     '/:id',
@@ -17,7 +19,17 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    async function (request, reply): Promise<ProfileEntity> {}
+    async function (request, reply): Promise<ProfileEntity> {
+      const id = request.params.id;
+      const profile = await fastify.db.profiles.findOne({
+        key: 'id',
+        equals: id,
+      });
+      if (Object.is(profile, null)) {
+        reply.notFound("Profile doesn't exist")
+      }
+      return profile as ProfileEntity;
+    }
   );
 
   fastify.post(
@@ -27,7 +39,10 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         body: createProfileBodySchema,
       },
     },
-    async function (request, reply): Promise<ProfileEntity> {}
+    async function (request, reply): Promise<ProfileEntity> {
+      const body = request.body;
+      return await fastify.db.profiles.create(body);
+    }
   );
 
   fastify.delete(
@@ -37,7 +52,10 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    async function (request, reply): Promise<ProfileEntity> {}
+    async function (request, reply): Promise<ProfileEntity> {
+      const id = request.params.id;
+      return await fastify.db.profiles.delete(id);
+    }
   );
 
   fastify.patch(
@@ -48,7 +66,12 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    async function (request, reply): Promise<ProfileEntity> {}
+    async function (request, reply): Promise<ProfileEntity> {
+      const id = request.params.id;
+      const body = request.body;
+      const profile = await fastify.db.profiles.findOne({key:'id', equals:id}) as ProfileEntity;
+      return await fastify.db.profiles.change(id, Object.assign(profile, body));
+    }
   );
 };
 

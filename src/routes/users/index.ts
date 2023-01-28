@@ -10,7 +10,9 @@ import type { UserEntity } from '../../utils/DB/entities/DBUsers';
 const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   fastify
 ): Promise<void> => {
-  fastify.get('/', async function (request, reply): Promise<UserEntity[]> {});
+  fastify.get('/', async function (request, reply): Promise<UserEntity[]> {
+    return await fastify.db.users.findMany();
+  });
 
   fastify.get(
     '/:id',
@@ -19,7 +21,17 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    async function (request, reply): Promise<UserEntity> {}
+    async function (request, reply): Promise<UserEntity> {
+      const id = request.params.id;
+      const user = await fastify.db.users.findOne({
+        key: 'id',
+        equals: id,
+      });
+      if (Object.is(user, null)) {
+        reply.notFound("User doesn't exist");
+      }
+      return user as UserEntity;
+    }
   );
 
   fastify.post(
@@ -29,7 +41,10 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         body: createUserBodySchema,
       },
     },
-    async function (request, reply): Promise<UserEntity> {}
+    async function (request, reply): Promise<UserEntity> {
+      const body = request.body;
+      return await fastify.db.users.create(body);
+    }
   );
 
   fastify.delete(
@@ -39,7 +54,10 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    async function (request, reply): Promise<UserEntity> {}
+    async function (request, reply): Promise<UserEntity> {
+      const id = request.params.id;
+      return await fastify.db.users.delete(id);
+    }
   );
 
   fastify.post(
@@ -72,7 +90,15 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         params: idParamSchema,
       },
     },
-    async function (request, reply): Promise<UserEntity> {}
+    async function (request, reply): Promise<UserEntity> {
+      const id = request.params.id;
+      const body = request.body;
+      const user = (await fastify.db.users.findOne({
+        key: 'id',
+        equals: id,
+      })) as UserEntity;
+      return await fastify.db.users.change(id, Object.assign(user, body));
+    }
   );
 };
 
