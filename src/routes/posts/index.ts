@@ -24,7 +24,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         equals: id,
       });
       if (Object.is(post, null)) {
-        reply.notFound("Post doesn't exist")
+        reply.notFound("Post doesn't exist");
       }
       return post as PostEntity;
     }
@@ -39,7 +39,11 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     },
     async function (request, reply): Promise<PostEntity> {
       const body = request.body;
-      return await fastify.db.posts.create(body);   
+      const { userId } = body;
+      if (!userId) {
+        throw fastify.httpErrors.badRequest();
+      }
+      return await fastify.db.posts.create(body);
     }
   );
 
@@ -52,6 +56,21 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     },
     async function (request, reply): Promise<PostEntity> {
       const id = request.params.id;
+
+      const post = await fastify.db.posts.findOne({
+        key: 'id',
+        equals: id,
+      });
+      if (Object.is(post, null)) {
+        throw fastify.httpErrors.badRequest();
+      }
+      const userId = await fastify.db.users.findOne({
+        key: 'id',
+        equals: post!.userId,
+      });
+      if (Object.is(userId, null)) {
+        reply.notFound("Post doesn't exist");
+      }
       return await fastify.db.posts.delete(id);
     }
   );
@@ -67,7 +86,13 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     async function (request, reply): Promise<PostEntity> {
       const id = request.params.id;
       const body = request.body;
-      const post = await fastify.db.posts.findOne({key:'id', equals:id}) as PostEntity;
+      const post = (await fastify.db.posts.findOne({
+        key: 'id',
+        equals: id,
+      })) as PostEntity;
+      if (Object.is(post, null)) {
+        throw fastify.httpErrors.badRequest();
+      }
       return await fastify.db.posts.change(id, Object.assign(post, body));
     }
   );

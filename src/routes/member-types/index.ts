@@ -26,7 +26,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         equals: id,
       });
       if (Object.is(memberType, null)) {
-        reply.notFound("MemberType doesn't exist")
+        reply.notFound("MemberType doesn't exist");
       }
       return memberType as MemberTypeEntity;
     }
@@ -43,8 +43,17 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     async function (request, reply): Promise<MemberTypeEntity> {
       const id = request.params.id;
       const body = request.body;
-      const post = await fastify.db.memberTypes.findOne({key:'id', equals:id}) as MemberTypeEntity;
-      return await fastify.db.memberTypes.change(id, Object.assign(post, body));
+      const memberType = (await fastify.db.memberTypes.findOne({
+        key: 'id',
+        equals: id,
+      })) as MemberTypeEntity;
+      const { discount, monthPostsLimit } = body;
+      if (!discount && !monthPostsLimit) {
+        throw fastify.httpErrors.badRequest()
+      } return await fastify.db.memberTypes.change(
+        id,
+        Object.assign(memberType, body)
+      );
     }
   );
 };
